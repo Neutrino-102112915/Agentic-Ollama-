@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 import subprocess
 import sys
@@ -8,20 +9,30 @@ AGENTS_FILE = "agents.json"
 OLLAMA_CMD = "ollama"
 DEFAULT_SYSTEM_PROMPT = "You are a helpful AI agent. Respond clearly and concisely."
 
+
+# -----------------------------
+# Agent manager
+# -----------------------------
 class Agent:
     def __init__(self, name, model, description, system_prompt=None):
         self.name = name
         self.model = model
         self.description = description
-        self.system_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
+        self.system_prompt = f"{system_prompt} | {DEFAULT_SYSTEM_PROMPT}"
 
     @staticmethod
     def load_agents():
+        if not os.path.exists(AGENTS_FILE):
+            return []
+        
         try:
             with open(AGENTS_FILE, "r") as f:
-                data = json.load(f)
-                return [Agent(**a) for a in data]
-        except FileNotFoundError:
+                # Check if the file is empty before loading
+                content = f.read().strip()
+                if not content:
+                    return []
+                return [Agent(**a) for a in json.loads(content)]
+        except (json.JSONDecodeError, FileNotFoundError):
             return []
 
     @staticmethod
@@ -57,6 +68,10 @@ class Agent:
             json.dump(data, f, indent=4)
         print(f"Agent '{name}' created.")
 
+
+# -----------------------------
+# Conversation tub
+# -----------------------------
 class Tub:
     def __init__(self, agent: Agent):
         self.agent = agent
@@ -89,6 +104,10 @@ class Tub:
         except subprocess.CalledProcessError as e:
             return f"Error: {e.stderr}"
 
+
+# -----------------------------
+# Interactive chat
+# -----------------------------
 def interactive_chat(agent_name):
     os.system('cls' if os.name == 'nt' else 'clear')
     agent = Agent.find(agent_name)
@@ -116,6 +135,10 @@ def interactive_chat(agent_name):
 def color(num, text):
     return f"\033[38;5;{num}m{text}\033[0m"
 
+
+# -----------------------------
+# CLI entrypoint
+# -----------------------------
 def main():
     if len(sys.argv) < 2:
         print("Usage: python main.py <agent_name>")
